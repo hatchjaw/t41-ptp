@@ -15,6 +15,7 @@ public:
     void setKp(double val);
     NanoTime getOffset();
     NanoTime getDelay();
+    double getAdjust();
     void syncMessage();
     void announceMessage();
     void ppsInterruptTriggered(NanoTime pps_ts, NanoTime local_ts);
@@ -83,6 +84,7 @@ private:
     NanoTime currentDelay=0;
     int nspsAccu=0;
     double driftNSPS=0;
+    double nspsAdjust=0;
     double KI=0.5;
     double KP=1.0;
     int updateCounter=0;

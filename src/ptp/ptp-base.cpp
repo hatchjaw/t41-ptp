@@ -196,7 +196,7 @@ void PTPBase::updateController()
     const NanoTime offsetCorrection = -currentOffset;
     t2 += offsetCorrection;
 
-    double nspsAdjust = 0;
+    nspsAdjust = 0;
     double nspsAdjustC = 0;
     double nspsAdjustP = 0;
     double nspsAdjustI = 0;
@@ -292,6 +292,11 @@ NanoTime PTPBase::getOffset()
 NanoTime PTPBase::getDelay()
 {
     return currentDelay;
+}
+
+double PTPBase::getAdjust()
+{
+    return nspsAdjust;
 }
 
 void PTPBase::parsePTPMessage(const uint8_t *buf, int size, const timespec &recv_ts)
