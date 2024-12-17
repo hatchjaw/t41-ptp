@@ -299,6 +299,11 @@ double PTPBase::getAdjust()
     return nspsAdjust;
 }
 
+int PTPBase::getAccumulatedOffset()
+{
+    return nspsAccu;
+}
+
 void PTPBase::parsePTPMessage(const uint8_t *buf, int size, const timespec &recv_ts)
 {
     const uint8_t messageType = buf[0] & 0x0f;

@@ -16,6 +16,7 @@ public:
     NanoTime getOffset();
     NanoTime getDelay();
     double getAdjust();
+    int getAccumulatedOffset();
     void syncMessage();
     void announceMessage();
     void ppsInterruptTriggered(NanoTime pps_ts, NanoTime local_ts);
