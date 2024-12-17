@@ -16,6 +16,7 @@ public:
     NanoTime getOffset();
     NanoTime getDelay();
     double getAdjust();
+    double getDrift();
     int getAccumulatedOffset();
     void syncMessage();
     void announceMessage();

@@ -299,6 +299,11 @@ double PTPBase::getAdjust()
     return nspsAdjust;
 }
 
+double PTPBase::getDrift()
+{
+    return driftNSPS;
+}
+
 int PTPBase::getAccumulatedOffset()
 {
     return nspsAccu;
