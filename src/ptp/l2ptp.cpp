@@ -4,8 +4,8 @@
 
 using namespace qindesign::network;
 
-l2PTP::l2PTP(bool master_, bool slave_, bool p2p_):
-PTPBase(master_,slave_,p2p_)
+l2PTP::l2PTP(bool master_, bool slave_, bool p2p_, bool forwardable_):
+PTPBase(master_,slave_,p2p_), forwardable(forwardable_)
 {
 
 }
@@ -51,7 +51,7 @@ void l2PTP::updateSockets()
     //Serial.printf("Frame[%d]: dst=%02x:%02x:%02x:%02x:%02x:%02x src=%02x:%02x:%02x:%02x:%02x:%02x", frameSize, buf[0], buf[1], buf[2], buf[3], buf[4], buf[5], buf[6], buf[7], buf[8], buf[9], buf[10], buf[11]);
     const uint16_t type = (uint16_t{buf[12]} << 8) | buf[13];
 
-    if(type != 0x88f7){
+    if(type != ETHTYPE_PTP){
         return;
     }
 
@@ -78,14 +78,23 @@ void l2PTP::sendPTPMessage(const uint8_t *buf, int size, bool generalMessage)
     uint8_t srcmac[6];
     qindesign::network::Ethernet.macAddress(srcmac);
     uint8_t dstmac[6];
-    dstmac[0] = 0x01;
-    dstmac[1] = 0x80;
-    dstmac[2] = 0xc2;
-    dstmac[3] = 0x00;
-    dstmac[4] = 0x00;
-    dstmac[5] = 0x0e;
+    if (forwardable) {
+         dstmac[0] = 0x01;
+         dstmac[1] = 0x1B;
+         dstmac[2] = 0x19;
+         dstmac[3] = 0x00;
+         dstmac[4] = 0x00;
+         dstmac[5] = 0x00;
+    } else {
+         dstmac[0] = 0x01;
+         dstmac[1] = 0x80;
+         dstmac[2] = 0xc2;
+         dstmac[3] = 0x00;
+         dstmac[4] = 0x00;
+         dstmac[5] = 0x0e;
+    }
 
-    qindesign::network::EthernetFrame.beginFrame(dstmac,srcmac,(uint16_t)0x88f7);
+    qindesign::network::EthernetFrame.beginFrame(dstmac, srcmac, ETHTYPE_PTP);
     int w=qindesign::network::EthernetFrame.write(buf,size);
     const int fill = 46-w;
     if(fill>0){

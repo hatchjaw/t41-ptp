@@ -22,6 +22,7 @@ public:
     void announceMessage();
     void ppsInterruptTriggered(NanoTime pps_ts, NanoTime local_ts);
     int getLockCount();
+    void onControllerUpdated(void (*callback)(double, double));
 
 protected:
     virtual void initSockets()=0;
@@ -90,5 +91,6 @@ private:
     double KI=0.5;
     double KP=1.0;
     int updateCounter=0;
-    
+
+    void (*controllerUpdatedCallback)(double, double){nullptr};
 };

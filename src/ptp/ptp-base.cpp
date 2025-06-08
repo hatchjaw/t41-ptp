@@ -254,11 +254,20 @@ void PTPBase::updateController()
         //Serial.printf("%d %d %d %d %d %f %f %f %f\n",updateCounter,coarseMode ? 0 : 1,(int)currentDelay, (int)currentOffset, (int)currentDriftNsps, nspsAdjustC, nspsAdjustP, nspsAdjustI, tempmonGetTemp());
     }
     updateCounter++;
+
+    if (controllerUpdatedCallback != nullptr) {
+        controllerUpdatedCallback(nspsAdjust, driftNSPS);
+    }
 }
 
 int PTPBase::getLockCount()
 {
 	return lockcount;
+}
+
+void PTPBase::onControllerUpdated(void (*callback)(double, double))
+{
+    controllerUpdatedCallback = callback;
 }
 
 void PTPBase::updateTimer()
