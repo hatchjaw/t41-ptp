@@ -1,8 +1,27 @@
 #pragma once
 
+#include <Arduino.h>
+#include <TimeLib.h>
+
 using NanoTime = int64_t;
 
 constexpr NanoTime NS_PER_S = 1000*1000*1000;
+
+inline void printTime(const NanoTime t)
+{
+    NanoTime x = t;
+    const int ns = x % 1000;
+    x /= 1000;
+    const int us = x % 1000;
+    x /= 1000;
+    const int ms = x % 1000;
+    x /= 1000;
+
+    tmElements_t tme;
+    breakTime((time_t)x, tme);
+
+    Serial.printf("%02d.%02d.%04d %02d:%02d:%02d::%03d:%03d:%03d\n", tme.Day, tme.Month, 1970 + tme.Year, tme.Hour, tme.Minute, tme.Second, ms, us, ns);
+}
 
 class PTPBase
 {
