@@ -153,6 +153,8 @@ void PTPBase::reset()
 
     nspsAccu = 0;
     driftNSPS = 0;
+
+    lockcount = 0;
 }
 
 void PTPBase::setKi(double val)
@@ -278,7 +280,7 @@ int PTPBase::getLockCount()
 	return lockcount;
 }
 
-void PTPBase::onControllerUpdated(void (*callback)(double, double))
+void PTPBase::onControllerUpdated(void (*callback)(double))
 {
     controllerUpdatedCallback = callback;
 }
