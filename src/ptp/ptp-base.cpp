@@ -271,7 +271,7 @@ void PTPBase::updateController()
     updateCounter++;
 
     if (controllerUpdatedCallback != nullptr) {
-        controllerUpdatedCallback(nspsAdjust, driftNSPS);
+        controllerUpdatedCallback(nspsAdjust);
     }
 }
 
