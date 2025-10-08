@@ -112,5 +112,5 @@ private:
     double KP=1.0;
     int updateCounter=0;
 
-    void (*controllerUpdatedCallback)(double, double){nullptr};
+    void (*controllerUpdatedCallback)(double){nullptr};
 };
