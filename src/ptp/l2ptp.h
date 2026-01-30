@@ -5,7 +5,7 @@
 class l2PTP : public PTPBase
 {
 public:
-    l2PTP(bool master_, bool slave_, bool p2p_, bool forwardable_ = false);
+    l2PTP(ClockRole role, DelayMode mode, bool forwardable_ = false);
 private:
     void initSockets() override;
     void updateSockets() override;

@@ -7,10 +7,9 @@ const IPAddress pAdr{224, 0, 0, 107};
 const int eventPort = 319;
 const int generalPort = 320;
 
-l3PTP::l3PTP(bool master_, bool slave_, bool p2p_):
-PTPBase(master_,slave_,p2p_)
+l3PTP::l3PTP(ClockRole role, DelayMode mode)
+    : PTPBase(role, mode)
 {
-
 }
 
 void l3PTP::initSockets()
@@ -21,7 +20,7 @@ void l3PTP::initSockets()
     eventSocket->beginMulticast(adr, eventPort, true);
     generalSocket->beginMulticast(adr, generalPort, true);
 
-    if(p2p){
+    if(delayMode == DelayMode::P2P){
         pEventSocket = new qindesign::network::EthernetUDP;
         pGeneralSocket = new qindesign::network::EthernetUDP;
         pEventSocket->beginMulticast(pAdr, eventPort, true);
@@ -50,7 +49,7 @@ void l3PTP::updateSockets()
         generalSocket->read(gbuf, gsize);
         parsePTPMessage(gbuf,gsize,grecv_ts);
     }
-    if(p2p){
+    if(delayMode == DelayMode::P2P){
         const int esize = pEventSocket->parsePacket();
         if (esize > 0)
         {

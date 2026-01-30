@@ -23,25 +23,45 @@ inline void printTime(const NanoTime t)
     Serial.printf("%02d.%02d.%04d %02d:%02d:%02d::%03d:%03d:%03d\n", tme.Day, tme.Month, 1970 + tme.Year, tme.Hour, tme.Minute, tme.Second, ms, us, ns);
 }
 
+enum class ClockRole
+{
+    Authority,
+    Subscriber
+};
+
+enum class DelayMode
+{
+    E2E,
+    P2P
+};
+
+enum LogLevel {
+    None = 0,
+    Low = 1,
+    Medium,
+    High
+};
+
 class PTPBase
 {
 public:
-    PTPBase(bool master_, bool slave_, bool p2p_);
+    PTPBase(ClockRole role, DelayMode mode, LogLevel logLevel = None);
     void begin();
     void update();
     void reset();
     void setKi(double val);
     void setKp(double val);
-    NanoTime getOffset();
-    NanoTime getDelay();
-    double getAdjust();
-    double getDrift();
-    int getAccumulatedOffset();
+    ClockRole getClockRole() const;
+    NanoTime getOffset() const;
+    NanoTime getDelay() const;
+    double getAdjust() const;
+    double getDrift() const;
+    int getAccumulatedOffset() const;
     void syncMessage();
     void announceMessage();
     void ppsInterruptTriggered(NanoTime pps_ts, NanoTime local_ts);
-    int getLockCount();
-    void onControllerUpdated(void (*callback)(double));
+    int getLockCount() const;
+    void onControllerUpdated(const std::function<void(double state)> &callback);
 
 protected:
     virtual void initSockets()=0;
@@ -49,9 +69,8 @@ protected:
     virtual void sendPTPMessage(const uint8_t *buf, int size, bool generalMessage)=0;
     
     void parsePTPMessage(const uint8_t *buf, int size, const timespec &recv_ts);
-    bool master;
-    bool slave;
-    bool p2p;
+    ClockRole clockRole;
+    DelayMode delayMode;
     
 private:
 	void setT1(NanoTime ts);
@@ -72,7 +91,7 @@ private:
     void updateTimer();
     void updatePPS();
 
-    uint8_t clockID[8];
+    uint8_t clockID[8]{};
     bool initialised=false;
     uint16_t delayRequestSequenceID = 0;
 	int lockcount=0;
@@ -111,6 +130,7 @@ private:
     double KI=0.5;
     double KP=1.0;
     int updateCounter=0;
+    LogLevel logging{None};
 
-    void (*controllerUpdatedCallback)(double){nullptr};
+    std::function<void(double state)> controllerUpdatedCallback{nullptr};
 };

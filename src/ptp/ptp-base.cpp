@@ -1,7 +1,6 @@
 #include <QNEthernet.h>
 #include "ptp-base.h"
 
-const int logging = 0;
 const int hwOffset = -200; // Hardware Offset
 
 NanoTime timespecToNanoTime(const timespec &tm)
@@ -51,12 +50,11 @@ void nanoTimeToTimespec(const NanoTime t, timespec &tm)
     tm.tv_nsec = ns;
 }
 
-PTPBase::PTPBase(bool master_, bool slave_, bool p2p_):
-master(master_),
-slave(slave_),
-p2p(p2p_)
+PTPBase::PTPBase(const ClockRole role, const DelayMode mode, const LogLevel logLevel)
+    : clockRole(role),
+      delayMode(mode),
+      logging(logLevel)
 {
-
 }
 
 void PTPBase::begin()
@@ -70,7 +68,7 @@ void PTPBase::begin()
 
     initialised = true;
 
-    if (logging)
+    if (logging > None)
     {
         Serial.println("PTP Started");
     }
@@ -88,7 +86,7 @@ void PTPBase::update()
             delayRequestMessage();
         }
         bool allTimestampsUpdated=t1updated && t2updated && t3updated && t4updated;
-        if(p2p){
+        if(delayMode == DelayMode::P2P){
             allTimestampsUpdated&=t5updated && t6updated;
         }
         if (allTimestampsUpdated)
@@ -106,7 +104,7 @@ void PTPBase::update()
                 updateTimer();
             }
         }
-        
+
         if (ppsupdated && t1lastvalid && t2lastvalid)
 		{
 			ppsupdated = false;
@@ -119,7 +117,7 @@ void PTPBase::update()
 
 void PTPBase::reset()
 {
-    if (logging)
+    if (logging > None)
     {
         Serial.println("Reset PTP state");
     }
@@ -169,18 +167,23 @@ void PTPBase::setKp(double val)
     reset();
 }
 
+ClockRole PTPBase::getClockRole() const
+{
+    return clockRole;
+}
+
 void PTPBase::updateController()
 {
     const double t1diff = (t1 - t1last);
     const double t2diff = (t2 - t2last);
     const double currentDrift = t2diff / t1diff;
     const double currentDriftNsps = (1.0 - currentDrift) * NS_PER_S;
-    
+
     // Max XTAL drift should be around 30ppm (30000ns/s). If drift is much higher (100000ns/s), master clock is most likely invalid due to severe adjustments
-    const bool driftError = currentDriftNsps > 100000 || currentDriftNsps < -100000; 
-    
+    const bool driftError = currentDriftNsps > 100000 || currentDriftNsps < -100000;
+
     const bool freqMode = currentDriftNsps > 1000 || currentDriftNsps < -1000;
-    
+
     const bool coarseMode = currentOffset > 1000 || currentOffset < -1000;
     const NanoTime offsetCorrection = -currentOffset;
 
@@ -215,7 +218,7 @@ void PTPBase::updateController()
             qindesign::network::EthernetIEEE1588.adjustFreq(nspsAdjust);
             t2 += offsetCorrection;
         }
-    
+
         if(!freqMode && !coarseMode && currentOffset < 100 && currentOffset > -100){
         	lockcount++;
         }else{
@@ -227,7 +230,7 @@ void PTPBase::updateController()
         lockcount=0; //no lock if in driftError state
     }
 
-    if (logging)
+    if (logging > None)
     {
 
         Serial.printf("T2diff:%f T1diff:%f\n", t2diff, t1diff);
@@ -275,30 +278,30 @@ void PTPBase::updateController()
     }
 }
 
-int PTPBase::getLockCount()
+int PTPBase::getLockCount() const
 {
 	return lockcount;
 }
 
-void PTPBase::onControllerUpdated(void (*callback)(double))
+void PTPBase::onControllerUpdated(const std::function<void(double state)> &callback)
 {
     controllerUpdatedCallback = callback;
 }
 
 void PTPBase::updateTimer()
 {
-    if (logging >= 2)
+    if (logging >= Medium)
     {
         Serial.println("NEW DATA");
     }
-    if(p2p){
+    if(delayMode == DelayMode::P2P){
         currentDelay = ((t6 - t3) - (t5 - t4)) / 2;
         currentOffset = (t2 - t1) - currentDelay + 500;
     }else{
         currentDelay = ((t4 - t1) - (t3 - t2)) / 2;
         currentOffset = (t2 - t1) - currentDelay + hwOffset;
     }
-    
+
     updateController();
 }
 
@@ -309,26 +312,26 @@ void PTPBase::updatePPS()
     updateController();
 }
 
-NanoTime PTPBase::getOffset()
+NanoTime PTPBase::getOffset() const
 {
     return currentOffset;
 }
-NanoTime PTPBase::getDelay()
+NanoTime PTPBase::getDelay() const
 {
     return currentDelay;
 }
 
-double PTPBase::getAdjust()
+double PTPBase::getAdjust() const
 {
     return nspsAdjust;
 }
 
-double PTPBase::getDrift()
+double PTPBase::getDrift() const
 {
     return driftNSPS;
 }
 
-int PTPBase::getAccumulatedOffset()
+int PTPBase::getAccumulatedOffset() const
 {
     return nspsAccu;
 }
@@ -339,21 +342,34 @@ void PTPBase::parsePTPMessage(const uint8_t *buf, int size, const timespec &recv
     const uint8_t versionPTP = buf[1] & 0x0f;
     const uint8_t domainNumer = buf[4];
     if(versionPTP==2){
-        if (logging >= 2)
+        if (logging >= Medium)
         {
             Serial.printf("PTPMessage messageType:%d versionPTP:%d domainNumer:%d\n", messageType, versionPTP, domainNumer);
         }
-        if(slave && messageType==0){
-            parseSyncMessage(buf,recv_ts);
-        }else if(master && messageType==1){
-            parseDelayRequestMessage(buf,recv_ts);
-        }
-        else if(slave && messageType == 8){
-            parseFollowUpMessage(buf);
-        }else if(slave && messageType==3 || messageType==9){
-            parseDelayResponseMessage(buf,recv_ts);
-        }else if(slave && messageType==10){
-            parseDelayResponseFollowUpMessage(buf);
+
+        switch (clockRole) {
+            case ClockRole::Subscriber:
+                switch (messageType) {
+                    case 0: parseSyncMessage(buf, recv_ts);
+                        break;
+                    case 8:
+                        parseFollowUpMessage(buf);
+                        break;
+                    case 3:
+                    case 9:
+                        parseDelayResponseMessage(buf, recv_ts);
+                        break;
+                    case 10:
+                        parseDelayResponseFollowUpMessage(buf);
+                    break;
+                    default: break;
+                }
+                break;
+            default:
+                if (messageType == 1) {
+                    parseDelayRequestMessage(buf,recv_ts);
+                }
+                break;
         }
     }
 }
@@ -361,8 +377,8 @@ void PTPBase::parsePTPMessage(const uint8_t *buf, int size, const timespec &recv
 
 void PTPBase::setT2(NanoTime ts){
     t2new = ts;
-    
-    if (logging)
+
+    if (logging > None)
     {
         Serial.print("T2 Sync  receive timestamp=");
         printTime(t2new);
@@ -375,7 +391,7 @@ void PTPBase::parseSyncMessage(const uint8_t *buf, const timespec &recv_ts)
     const uint16_t sequenceID = (buf[30] << 8) | buf[31];
 
     if (twoStepFlag > 0 && sequenceID > 0) // Sync twoStep
-    {	
+    {
     	setT2(timespecToNanoTime(recv_ts));
     	syncSequenceID = sequenceID;
     }
@@ -386,13 +402,13 @@ void PTPBase::setT1(NanoTime ts){
     t1lastvalid = t1last > 0;
     t1 = ts;
     t1updated = true;
-    
+
     t2last = t2; // Update T2 only if valid T1 data was received. Otherwise T2last and T1last might not be frrom the same sequenceID
     t2lastvalid = t2last > 0;
     t2 = t2new;
     t2updated = true;
 
-    if (logging)
+    if (logging > None)
     {
         Serial.print("T1 Sync  send    timestamp=");
         printTime(t1);
@@ -412,7 +428,7 @@ void PTPBase::parseFollowUpMessage(const uint8_t *buf)
 void PTPBase::setT4(NanoTime ts){
 	t4 = ts;
     t4updated = true;
-    if (logging)
+    if (logging > None)
     {
         Serial.print("T4 Delay receive timestamp=");
         printTime(t4);
@@ -428,9 +444,9 @@ void PTPBase::parseDelayResponseMessage(const uint8_t *buf, const timespec &recv
         setT4(bufferToNanoTime(buf));
         t6 = timespecToNanoTime(recv_ts);
         t6updated = true;
-        if (logging)
+        if (logging > None)
         {
-            if(p2p){
+            if(delayMode == DelayMode::P2P){
                 Serial.print("T6 Resp  receive timestamp=");
                 printTime(t6);
             }else{
@@ -448,13 +464,13 @@ void PTPBase::parseDelayResponseFollowUpMessage(const uint8_t *buf)
     {
         t5 = bufferToNanoTime(buf);
         t5updated = true;
-        if (logging)
+        if (logging > None)
         {
             Serial.print("T5 Resp  send    timestamp=");
             printTime(t5);
             Serial.println("");
         }
-    }    
+    }
 }
 
 void PTPBase::parseDelayRequestMessage(const uint8_t *buf, const timespec &recv_ts)
@@ -463,7 +479,7 @@ void PTPBase::parseDelayRequestMessage(const uint8_t *buf, const timespec &recv_
     t4s = timespecToNanoTime(recv_ts)+ hwOffset;
     timespec ts;
     nanoTimeToTimespec(t4s,ts);
-    if (logging)
+    if (logging > None)
     {
         Serial.print("T4s Delay receiv timestamp=");
         printTime(t4s);
@@ -479,7 +495,7 @@ void PTPBase::delayResponseMessage(const uint8_t *request_buf, uint16_t sequence
     uint16_t size=54;
     uint8_t type=9;
     uint8_t control=3;
-   
+
     uint8_t buf[size] = {0};
 
     initPTPMessage(buf, size, type, sequenceID, control);
@@ -500,13 +516,13 @@ void PTPBase::delayResponseMessage(const uint8_t *request_buf, uint16_t sequence
 
 void PTPBase::announceMessage()
 {
-    if(!initialised || !master){
+    if(!initialised || clockRole != ClockRole::Authority){
         return;
     }
     uint16_t size=64;
     uint8_t type=11;
     uint8_t control=5;
-   
+
     uint8_t buf[size] = {0};
 
     initPTPMessage(buf, size, type, announceServerSequenceID++, control);
@@ -533,13 +549,13 @@ void PTPBase::announceMessage()
 
 void PTPBase::syncMessage()
 {
-    if(!initialised || !master){
+    if(!initialised || clockRole != ClockRole::Authority){
         return;
     }
     uint16_t size=44;
     uint8_t type=0;
     uint8_t control=0;
-   
+
     uint8_t buf[size] = {0};
 
     initPTPMessage(buf, size, type, syncServerSequenceID, control);
@@ -547,27 +563,27 @@ void PTPBase::syncMessage()
     buf[33]=0;
     qindesign::network::EthernetIEEE1588.timestampNextFrame();
     sendPTPMessage(buf,size,false);
-    
+
 
     struct timespec send_ts;
-    if (logging >= 2)
+    if (logging >= Medium)
     {
         Serial.print("Wait for T1s Delay send timestamp");
     }
     while (!qindesign::network::EthernetIEEE1588.readAndClearTxTimestamp(send_ts))
     {
-        if (logging >= 2)
+        if (logging >= Medium)
         {
             Serial.print(".");
         }
     }
-    if (logging >= 2)
+    if (logging >= Medium)
     {
         Serial.println(" finished");
     }
     t1s = timespecToNanoTime(send_ts)+ hwOffset;
     nanoTimeToTimespec(t1s,send_ts);
-    if (logging)
+    if (logging > None)
     {
         Serial.print("T1s Delay send   timestamp=");
         printTime(t1s);
@@ -578,13 +594,13 @@ void PTPBase::syncMessage()
 
 void PTPBase::followUpMessage(const timespec &send_ts)
 {
-    if(!initialised || !master){
+    if(!initialised || clockRole != ClockRole::Authority){
         return;
     }
     uint16_t size=44;
     uint8_t type=8;
     uint8_t control=2;
-   
+
     uint8_t buf[size] = {0};
 
     initPTPMessage(buf, size, type, syncServerSequenceID, control);
@@ -596,7 +612,7 @@ void PTPBase::followUpMessage(const timespec &send_ts)
 void PTPBase::setT3(NanoTime ts){
 	t3 = ts;
     t3updated = true;
-    if (logging)
+    if (logging > None)
     {
         Serial.print("T3 Delay send    timestamp=");
         printTime(t3);
@@ -608,7 +624,7 @@ void PTPBase::delayRequestMessage()
     uint16_t size;
     uint8_t type;
     uint8_t control;
-    if(!p2p){
+    if(delayMode == DelayMode::E2E){
         type=1;
         size=44;
         control=1;
@@ -625,18 +641,18 @@ void PTPBase::delayRequestMessage()
     delayRequestSequenceID++;
 
     struct timespec send_ts;
-    if (logging >= 2)
+    if (logging >= Medium)
     {
         Serial.print("Wait for T3 Delay send timestamp");
     }
     while (!qindesign::network::EthernetIEEE1588.readAndClearTxTimestamp(send_ts))
     {
-        if (logging >= 2)
+        if (logging >= Medium)
         {
             Serial.print(".");
         }
     }
-    if (logging >= 2)
+    if (logging >= Medium)
     {
         Serial.println(" finished");
     }
@@ -644,12 +660,12 @@ void PTPBase::delayRequestMessage()
 }
 
 void PTPBase::ppsInterruptTriggered(NanoTime pps_ts, NanoTime local_ts){
-	if(!initialised || !master){
+	if(!initialised || clockRole != ClockRole::Authority){
 		return;
 	}
 	setT2(local_ts);
 	setT1(pps_ts);
-	
+
 	ppsupdated=true;
 }
 

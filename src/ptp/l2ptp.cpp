@@ -4,10 +4,9 @@
 
 using namespace qindesign::network;
 
-l2PTP::l2PTP(bool master_, bool slave_, bool p2p_, bool forwardable_):
-PTPBase(master_,slave_,p2p_), forwardable(forwardable_)
+l2PTP::l2PTP(ClockRole role, DelayMode mode, bool forwardable_)
+    : PTPBase(role, mode), forwardable(forwardable_)
 {
-
 }
 
 void l2PTP::initSockets()
