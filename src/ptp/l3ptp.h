@@ -13,7 +13,7 @@ namespace qindesign
 class l3PTP : public PTPBase
 {
 public:
-    l3PTP(ClockRole role, DelayMode mode);
+    l3PTP(ClockRole role, DelayMode mode, LogLevel logLevel = None);
 private:
     void initSockets() override;
     void updateSockets() override;

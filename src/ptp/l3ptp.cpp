@@ -7,8 +7,8 @@ const IPAddress pAdr{224, 0, 0, 107};
 const int eventPort = 319;
 const int generalPort = 320;
 
-l3PTP::l3PTP(ClockRole role, DelayMode mode)
-    : PTPBase(role, mode)
+l3PTP::l3PTP(ClockRole role, DelayMode mode, LogLevel logLevel)
+    : PTPBase(role, mode, logLevel)
 {
 }
 

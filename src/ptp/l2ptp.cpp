@@ -4,8 +4,8 @@
 
 using namespace qindesign::network;
 
-l2PTP::l2PTP(ClockRole role, DelayMode mode, bool forwardable_)
-    : PTPBase(role, mode), forwardable(forwardable_)
+l2PTP::l2PTP(ClockRole role, DelayMode mode, bool forwardable_, LogLevel logLevel)
+    : PTPBase(role, mode, logLevel), forwardable(forwardable_)
 {
 }
 
