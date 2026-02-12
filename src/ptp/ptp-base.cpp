@@ -283,6 +283,18 @@ int PTPBase::getLockCount() const
 	return lockcount;
 }
 
+size_t PTPBase::printTo(Print &p) const
+{
+    return p.printf("PTP t1: %" PRId64 ", t2: %" PRId64 ", t3 %" PRId64 ", t4 %" PRId64 "\n"
+                    "  Drift: %f, Offset: %" PRId64 ", Delay %" PRId64 ", Adjust: %f\n",
+                    t1, t2, t3, t4,
+                    driftNSPS,
+                    currentOffset,
+                    currentDelay,
+                    nspsAdjust
+    );
+}
+
 void PTPBase::onControllerUpdated(const std::function<void(double state)> &callback)
 {
     controllerUpdatedCallback = callback;

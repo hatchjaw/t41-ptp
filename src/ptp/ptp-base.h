@@ -42,7 +42,7 @@ enum LogLevel {
     High
 };
 
-class PTPBase
+class PTPBase : public Printable
 {
 public:
     PTPBase(ClockRole role, DelayMode mode, LogLevel logLevel = None);
@@ -61,6 +61,7 @@ public:
     void announceMessage();
     void ppsInterruptTriggered(NanoTime pps_ts, NanoTime local_ts);
     int getLockCount() const;
+    size_t printTo(Print &p) const override;
     void onControllerUpdated(const std::function<void(double state)> &callback);
 
 protected:
