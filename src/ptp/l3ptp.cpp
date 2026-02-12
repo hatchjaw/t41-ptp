@@ -33,41 +33,45 @@ void l3PTP::updateSockets()
     const int esize = eventSocket->parsePacket();
     if (esize > 0)
     {
-        timespec erecv_ts;
-        eventSocket->timestamp(erecv_ts);
         uint8_t ebuf[esize];
-        eventSocket->read(ebuf, esize);
-        parsePTPMessage(ebuf,esize,erecv_ts);
+        timespec erecv_ts;
+
+        if (eventSocket->readWithTimestamp(ebuf, esize, &erecv_ts) > 0) {
+            parsePTPMessage(ebuf, esize, erecv_ts);
+        }
     }
 
     const int gsize = generalSocket->parsePacket();
     if (gsize > 0)
     {
-        timespec grecv_ts;
-        generalSocket->timestamp(grecv_ts);
         uint8_t gbuf[gsize];
-        generalSocket->read(gbuf, gsize);
-        parsePTPMessage(gbuf,gsize,grecv_ts);
+        timespec grecv_ts;
+
+        if (generalSocket->readWithTimestamp(gbuf, gsize, &grecv_ts) > 0) {
+            parsePTPMessage(gbuf, gsize, grecv_ts);
+        }
     }
     if(delayMode == DelayMode::P2P){
         const int esize = pEventSocket->parsePacket();
         if (esize > 0)
         {
-            timespec erecv_ts;
-            pEventSocket->timestamp(erecv_ts);
             uint8_t ebuf[esize];
-            pEventSocket->read(ebuf, esize);
-            parsePTPMessage(ebuf,esize,erecv_ts);
+            timespec erecv_ts;
+
+            if (eventSocket->readWithTimestamp(ebuf, esize, &erecv_ts) > 0) {
+                parsePTPMessage(ebuf, esize, erecv_ts);
+            }
         }
 
         const int gsize = pGeneralSocket->parsePacket();
         if (gsize > 0)
         {
-            timespec grecv_ts;
-            pGeneralSocket->timestamp(grecv_ts);
             uint8_t gbuf[gsize];
-            pGeneralSocket->read(gbuf, gsize);
-            parsePTPMessage(gbuf,gsize,grecv_ts);
+            timespec grecv_ts;
+
+            if (generalSocket->readWithTimestamp(gbuf, gsize, &grecv_ts) > 0) {
+                parsePTPMessage(gbuf, gsize, grecv_ts);
+            }
         }
     }
 }
