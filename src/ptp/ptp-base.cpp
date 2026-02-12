@@ -286,7 +286,7 @@ int PTPBase::getLockCount() const
 size_t PTPBase::printTo(Print &p) const
 {
     return p.printf("PTP t1: %" PRId64 ", t2: %" PRId64 ", t3 %" PRId64 ", t4 %" PRId64 "\n"
-                    "  Mode: %d, Drift: %f, Offset: %" PRId64 ", Delay %" PRId64 ", Adjust: %f\n",
+                    "  Mode: %s, Drift: %f, Offset: %" PRId64 ", Delay %" PRId64 ", Adjust: %f\n",
                     t1, t2, t3, t4,
                     currentOffset > 1000 || currentOffset < -1000 ? "coarse" : "fine",
                     driftNSPS,
