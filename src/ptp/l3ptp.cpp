@@ -14,15 +14,15 @@ l3PTP::l3PTP(ClockRole role, DelayMode mode, LogLevel logLevel)
 
 void l3PTP::initSockets()
 {
-    eventSocket = new qindesign::network::EthernetUDP;
-    generalSocket = new qindesign::network::EthernetUDP;
+    eventSocket = new qindesign::network::EthernetUDP{4};
+    generalSocket = new qindesign::network::EthernetUDP{4};
 
     eventSocket->beginMulticast(adr, eventPort, true);
     generalSocket->beginMulticast(adr, generalPort, true);
 
     if(delayMode == DelayMode::P2P){
-        pEventSocket = new qindesign::network::EthernetUDP;
-        pGeneralSocket = new qindesign::network::EthernetUDP;
+        pEventSocket = new qindesign::network::EthernetUDP{4};
+        pGeneralSocket = new qindesign::network::EthernetUDP{4};
         pEventSocket->beginMulticast(pAdr, eventPort, true);
         pGeneralSocket->beginMulticast(pAdr, generalPort, true);
     }
@@ -30,30 +30,31 @@ void l3PTP::initSockets()
 
 void l3PTP::updateSockets()
 {
-    const int esize = eventSocket->parsePacket();
-    if (esize > 0)
-    {
+    int esize{eventSocket->parsePacket()};
+    while (esize > 0) {
         uint8_t ebuf[esize];
         timespec erecv_ts;
 
         if (eventSocket->readWithTimestamp(ebuf, esize, &erecv_ts) > 0) {
             parsePTPMessage(ebuf, esize, erecv_ts);
         }
+        esize = eventSocket->parsePacket();
     }
 
-    const int gsize = generalSocket->parsePacket();
-    if (gsize > 0)
-    {
+    int gsize{generalSocket->parsePacket()};
+    while (gsize > 0) {
         uint8_t gbuf[gsize];
         timespec grecv_ts;
 
         if (generalSocket->readWithTimestamp(gbuf, gsize, &grecv_ts) > 0) {
             parsePTPMessage(gbuf, gsize, grecv_ts);
         }
+        gsize = generalSocket->parsePacket();
     }
+
     if(delayMode == DelayMode::P2P){
-        const int esize = pEventSocket->parsePacket();
-        if (esize > 0)
+        int esize{pEventSocket->parsePacket()};
+        while (esize > 0)
         {
             uint8_t ebuf[esize];
             timespec erecv_ts;
@@ -61,10 +62,11 @@ void l3PTP::updateSockets()
             if (eventSocket->readWithTimestamp(ebuf, esize, &erecv_ts) > 0) {
                 parsePTPMessage(ebuf, esize, erecv_ts);
             }
+            esize = pEventSocket->parsePacket();
         }
 
-        const int gsize = pGeneralSocket->parsePacket();
-        if (gsize > 0)
+        int gsize{pGeneralSocket->parsePacket()};
+        while (gsize > 0)
         {
             uint8_t gbuf[gsize];
             timespec grecv_ts;
@@ -72,6 +74,7 @@ void l3PTP::updateSockets()
             if (generalSocket->readWithTimestamp(gbuf, gsize, &grecv_ts) > 0) {
                 parsePTPMessage(gbuf, gsize, grecv_ts);
             }
+            gsize = pGeneralSocket->parsePacket();
         }
     }
 }
