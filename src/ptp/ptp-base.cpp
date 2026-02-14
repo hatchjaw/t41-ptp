@@ -233,11 +233,11 @@ void PTPBase::updateController()
     if (logging > None)
     {
 
-        Serial.printf("T2diff:%f T1diff:%f\n", t2diff, t1diff);
-        Serial.printf("T2-T1:%d T4-T3:%d\n", (int)(t2 - t1), (int)(t4 - t3));
-        Serial.printf("Delay:%dns ", (int)currentDelay);
-        Serial.printf("Offset:%dns ", (int)currentOffset);
-        Serial.printf("Drift:%dns \n", (int)currentDriftNsps);
+        Serial.printf("T2 diff: %f T1 diff: %f\n", t2diff, t1diff);
+        Serial.printf("T2-T1: %d T4-T3: %d\n", (int)(t2 - t1), (int)(t4 - t3));
+        Serial.printf("Delay: %d ns ", (int)currentDelay);
+        Serial.printf("Offset: %d ns ", (int)currentOffset);
+        Serial.printf("Drift: %d ns \n", (int)currentDriftNsps);
 
         if(driftError)
         {
@@ -249,11 +249,11 @@ void PTPBase::updateController()
         }
         else if (coarseMode)
         {
-            Serial.printf("Coarse mode adjust:%d ns", (int)offsetCorrection);
+            Serial.printf("Coarse mode adjust: %d ns", (int)offsetCorrection);
         }
         else
         {
-            Serial.printf("Fine filter mode ns/s:%f C:%f P(%f):%f I(%f):%f", nspsAdjust, nspsAdjustC, KP, nspsAdjustP, KI, nspsAdjustI);
+            Serial.printf("Fine filter mode ns/s: %f C:%f P(%f):%f I(%f):%f", nspsAdjust, nspsAdjustC, KP, nspsAdjustP, KI, nspsAdjustI);
         }
 
         Serial.println();
@@ -357,7 +357,7 @@ void PTPBase::parsePTPMessage(const uint8_t *buf, int size, const timespec &recv
     if(versionPTP==2){
         if (logging >= Medium)
         {
-            Serial.printf("PTPMessage messageType:%d versionPTP:%d domainNumer:%d\n", messageType, versionPTP, domainNumer);
+            Serial.printf("PTPMessage messageType: %d versionPTP: %d domainNumer: %d\n", messageType, versionPTP, domainNumer);
         }
 
         switch (clockRole) {
@@ -393,7 +393,7 @@ void PTPBase::setT2(NanoTime ts){
 
     if (logging > None)
     {
-        Serial.print("T2 Sync  receive timestamp=");
+        Serial.print("T2 Sync  receive timestamp = ");
         printTime(t2new);
     }
 }
@@ -423,7 +423,7 @@ void PTPBase::setT1(NanoTime ts){
 
     if (logging > None)
     {
-        Serial.print("T1 Sync  send    timestamp=");
+        Serial.print("T1 Sync  send    timestamp = ");
         printTime(t1);
     }
 }
@@ -443,7 +443,7 @@ void PTPBase::setT4(NanoTime ts){
     t4updated = true;
     if (logging > None)
     {
-        Serial.print("T4 Delay receive timestamp=");
+        Serial.print("T4 Delay receive timestamp = ");
         printTime(t4);
     }
 }
@@ -460,7 +460,7 @@ void PTPBase::parseDelayResponseMessage(const uint8_t *buf, const timespec &recv
         if (logging > None)
         {
             if(delayMode == DelayMode::P2P){
-                Serial.print("T6 Resp  receive timestamp=");
+                Serial.print("T6 Resp  receive timestamp = ");
                 printTime(t6);
             }else{
                 Serial.println("");
@@ -479,7 +479,7 @@ void PTPBase::parseDelayResponseFollowUpMessage(const uint8_t *buf)
         t5updated = true;
         if (logging > None)
         {
-            Serial.print("T5 Resp  send    timestamp=");
+            Serial.print("T5 Resp  send    timestamp = ");
             printTime(t5);
             Serial.println("");
         }
@@ -494,7 +494,7 @@ void PTPBase::parseDelayRequestMessage(const uint8_t *buf, const timespec &recv_
     nanoTimeToTimespec(t4s,ts);
     if (logging > None)
     {
-        Serial.print("T4s Delay receiv timestamp=");
+        Serial.print("T4s Delay receiv timestamp = ");
         printTime(t4s);
     }
     delayResponseMessage(buf,sequenceID,ts);
@@ -598,7 +598,7 @@ void PTPBase::syncMessage()
     nanoTimeToTimespec(t1s,send_ts);
     if (logging > None)
     {
-        Serial.print("T1s Delay send   timestamp=");
+        Serial.print("T1s Delay send   timestamp = ");
         printTime(t1s);
     }
     followUpMessage(send_ts);
@@ -627,7 +627,7 @@ void PTPBase::setT3(NanoTime ts){
     t3updated = true;
     if (logging > None)
     {
-        Serial.print("T3 Delay send    timestamp=");
+        Serial.print("T3 Delay send    timestamp = ");
         printTime(t3);
     }
 }
