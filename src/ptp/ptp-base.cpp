@@ -86,7 +86,7 @@ void PTPBase::update()
             syncSequenceID = 0;
             followUpSequenceID = 0;
         }
-        __disable_irq()
+        __enable_irq()
         if (shouldSendDelayRequest) {
             delayRequestMessage();
         }
