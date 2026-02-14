@@ -79,12 +79,18 @@ void PTPBase::update()
     if (initialised)
     {
         updateSockets();
-        if (syncSequenceID > 0 && followUpSequenceID > 0 && syncSequenceID == followUpSequenceID)
-        {
+
+        __disable_irq()
+        bool shouldSendDelayRequest{syncSequenceID > 0 && followUpSequenceID > 0 && syncSequenceID == followUpSequenceID};
+        if (shouldSendDelayRequest) {
             syncSequenceID = 0;
             followUpSequenceID = 0;
+        }
+        __disable_irq()
+        if (shouldSendDelayRequest) {
             delayRequestMessage();
         }
+
         bool allTimestampsUpdated=t1updated && t2updated && t3updated && t4updated;
         if(delayMode == DelayMode::P2P){
             allTimestampsUpdated&=t5updated && t6updated;
@@ -241,7 +247,7 @@ void PTPBase::updateController()
 
         if(driftError)
         {
-            Serial.printf("Drift Error\n No controller update.\n");
+            Serial.printf("Drift Error --- No controller update.\n");
         }
         else if(freqMode)
         {
@@ -253,7 +259,7 @@ void PTPBase::updateController()
         }
         else
         {
-            Serial.printf("Fine filter mode ns/s: %f C:%f P(%f):%f I(%f):%f", nspsAdjust, nspsAdjustC, KP, nspsAdjustP, KI, nspsAdjustI);
+            Serial.printf("Fine filter mode ns/s: %f C: %f P (%f): %f I (%f): %f", nspsAdjust, nspsAdjustC, KP, nspsAdjustP, KI, nspsAdjustI);
         }
 
         Serial.println();

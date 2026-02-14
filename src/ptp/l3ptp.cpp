@@ -59,7 +59,7 @@ void l3PTP::updateSockets()
             uint8_t ebuf[esize];
             timespec erecv_ts;
 
-            if (eventSocket->readWithTimestamp(ebuf, esize, &erecv_ts) > 0) {
+            if (pEventSocket->readWithTimestamp(ebuf, esize, &erecv_ts) > 0) {
                 parsePTPMessage(ebuf, esize, erecv_ts);
             }
             esize = pEventSocket->parsePacket();
@@ -71,7 +71,7 @@ void l3PTP::updateSockets()
             uint8_t gbuf[gsize];
             timespec grecv_ts;
 
-            if (generalSocket->readWithTimestamp(gbuf, gsize, &grecv_ts) > 0) {
+            if (pGeneralSocket->readWithTimestamp(gbuf, gsize, &grecv_ts) > 0) {
                 parsePTPMessage(gbuf, gsize, grecv_ts);
             }
             gsize = pGeneralSocket->parsePacket();
